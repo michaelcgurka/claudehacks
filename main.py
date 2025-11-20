@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from dotenv import load_dotenv
@@ -162,7 +163,7 @@ Available Courses (prerequisites met):
 {json.dumps(available_courses, indent=2)}
 
 Generate 3 diverse schedule options that:
-1. Meet the target credit hours (±2 credits is acceptable)
+1. Meet the target credit hours (Â±2 credits is acceptable)
 2. Progress toward degree requirements
 3. Consider course difficulty balance
 4. Provide different focuses (e.g., theory-heavy, practical-heavy, balanced)
