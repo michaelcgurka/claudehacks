@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Course Scheduler - Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header h1 {
+            font-size: 24px;
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .logout-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .logout-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        .container {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+        .welcome-card {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        .welcome-card h2 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .welcome-card p {
+            color: #666;
+            line-height: 1.6;
+        }
+        .schedule-form {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        .schedule-form h3 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .form-row {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            flex: 1;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+        .form-group select,
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .generate-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px 30px;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+        }
+        .generate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        .generate-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            display: none;
+        }
+        .loading.show {
+            display: block;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .schedules-container {
+            display: none;
+        }
+        .schedules-container.show {
+            display: block;
+        }
+        .schedule-card {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .schedule-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        .schedule-header h4 {
+            color: #667eea;
+            font-size: 20px;
+        }
+        .credit-badge {
+            background: #667eea;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .rationale {
+            color: #666;
+            font-style: italic;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+        }
+        .course-list {
+            display: grid;
+            gap: 12px;
+        }
+        .course-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border-left: 4px solid #764ba2;
+        }
+        .course-code {
+            font-weight: 600;
+            color: #333;
+        }
+        .course-name {
+            color: #666;
+            flex: 1;
+            padding: 0 15px;
+        }
+        .course-credits {
+            color: #667eea;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Course Scheduler</h1>
+        <div class="user-info">
+            <span>{{ user.name }} ({{ user.major }})</span>
+            <a href="/logout" class="logout-btn">Logout</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="welcome-card">
+            <h2>Welcome back, {{ user.name }}!</h2>
+            <p>You're a {{ user.year }} studying {{ user.major }}. Let's find the perfect schedule for your next semester.</p>
+            <p style="margin-top: 10px;"><strong>Completed Courses:</strong> {{ user.completed_courses|join(', ') }}</p>
+        </div>
+
+        <div class="schedule-form">
+            <h3>Generate Your Schedule</h3>
+            <form id="scheduleForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="semester">Semester</label>
+                        <select id="semester" name="semester" required>
+                            <option value="Spring 2025">Spring 2025</option>
+                            <option value="Fall 2025" selected>Fall 2025</option>
+                            <option value="Spring 2026">Spring 2026</option>
+                            <option value="Fall 2026">Fall 2026</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="credit_hours">Target Credit Hours</label>
+                        <input type="number" id="credit_hours" name="credit_hours" min="6" max="21" value="15" required>
+                    </div>
+                </div>
+                <button type="submit" class="generate-btn" id="generateBtn">Generate Schedules</button>
+            </form>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Claude is analyzing your degree requirements and generating optimal schedules...</p>
+        </div>
+
+        <div class="schedules-container" id="schedulesContainer">
+            <h3 style="margin-bottom: 20px; color: #333;">Recommended Schedules</h3>
+            <div id="schedulesList"></div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('scheduleForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const btn = document.getElementById('generateBtn');
+            const loading = document.getElementById('loading');
+            const schedulesContainer = document.getElementById('schedulesContainer');
+            const schedulesList = document.getElementById('schedulesList');
+
+            btn.disabled = true;
+            loading.classList.add('show');
+            schedulesContainer.classList.remove('show');
+
+            const formData = {
+                semester: document.getElementById('semester').value,
+                credit_hours: parseInt(document.getElementById('credit_hours').value)
+            };
+
+            try {
+                const response = await fetch('/api/generate-schedules', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+
+                if (data.schedules) {
+                    schedulesList.innerHTML = '';
+
+                    data.schedules.forEach(schedule => {
+                        const card = document.createElement('div');
+                        card.className = 'schedule-card';
+
+                        const coursesHtml = schedule.course_details.map(course => `
+                            <div class="course-item">
+                                <span class="course-code">${course.code}</span>
+                                <span class="course-name">${course.name}</span>
+                                <span class="course-credits">${course.credits} credits</span>
+                            </div>
+                        `).join('');
+
+                        card.innerHTML = `
+                            <div class="schedule-header">
+                                <h4>${schedule.name}</h4>
+                                <span class="credit-badge">${schedule.total_credits} Credits</span>
+                            </div>
+                            <div class="rationale">${schedule.rationale}</div>
+                            <div class="course-list">
+                                ${coursesHtml}
+                            </div>
+                        `;
+
+                        schedulesList.appendChild(card);
+                    });
+
+                    loading.classList.remove('show');
+                    schedulesContainer.classList.add('show');
+                    btn.disabled = false;
+                } else {
+                    alert('Failed to generate schedules');
+                    loading.classList.remove('show');
+                    btn.disabled = false;
+                }
+            } catch (error) {
+                alert('An error occurred: ' + error.message);
+                loading.classList.remove('show');
+                btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
