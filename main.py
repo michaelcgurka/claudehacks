@@ -117,6 +117,20 @@ def generate_schedules():
     return jsonify({"schedules": schedules})
 
 
+@app.route('/api/course-sections/<path:course_code>', methods=['GET'])
+def get_course_sections(course_code):
+    """Fetch real-time section data for a course."""
+    if 'user' not in session:
+        return jsonify({"error": "Not authenticated"}), 401
+
+    semester = request.args.get('semester', 'Fall 2025')
+
+    print(f"Fetching sections for {course_code} in {semester}...")
+    sections = uw_api.get_course_sections(course_code, semester)
+
+    return jsonify({"sections": sections})
+
+
 def authenticate_user(email, password, duo_code):
     """
     Mock authentication function.

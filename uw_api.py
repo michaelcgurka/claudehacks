@@ -57,13 +57,74 @@ class UWMadisonAPI:
                     "max_credits": hit.get("maximumCredits", 3),
                     "prereqs": hit.get("enrollmentPrerequisites", "None"),
                     "description": hit.get("description", ""),
-                    "subject": hit.get("subject", {}).get("shortDescription", "")
+                    "subject": hit.get("subject", {}).get("shortDescription", ""),
+                    "course_id": hit.get("courseId", "")
                 })
 
             return courses
 
         except Exception as e:
             print(f"API Error: {e}")
+            return []
+
+    def get_course_sections(self, course_code: str, term: str = "Spring 2026") -> List[Dict]:
+        """
+        Fetch course sections with meeting times for a specific course.
+
+        Args:
+            course_code: Course code (e.g., "COMP SCI 300")
+            term: Semester (e.g., "Spring 2026", "Fall 2025")
+
+        Returns:
+            List of section dicts with meeting times
+        """
+        try:
+            term_code = self._parse_term(term)
+
+            # Search for the specific course
+            params = {
+                "termCode": term_code,
+                "term": term_code,
+                "keywords": course_code.lower(),
+                "openSeats": "ALL"
+            }
+
+            response = self.session.get(f"{self.api_url}/courses", params=params)
+            response.raise_for_status()
+
+            data = response.json()
+            sections = []
+
+            for hit in data.get("hits", []):
+                if hit.get("courseDesignationRaw", "").upper() == course_code.upper():
+                    # Get sections from the course
+                    for section in hit.get("sections", []):
+                        meeting_times = []
+
+                        # Parse meeting patterns
+                        for schedule in section.get("schedules", []):
+                            meeting_info = {
+                                "days": schedule.get("days", "TBA"),
+                                "start_time": schedule.get("startTime", "TBA"),
+                                "end_time": schedule.get("endTime", "TBA"),
+                                "location": schedule.get("location", {}).get("room", "TBA"),
+                                "building": schedule.get("location", {}).get("building", "")
+                            }
+                            meeting_times.append(meeting_info)
+
+                        sections.append({
+                            "section_number": section.get("number", ""),
+                            "instructor": ", ".join([inst.get("name", "TBA") for inst in section.get("instructors", [])]) or "TBA",
+                            "meeting_times": meeting_times,
+                            "seats_available": section.get("seatsAvailable", 0),
+                            "total_seats": section.get("totalSeats", 0),
+                            "type": section.get("scheduleType", "LEC")
+                        })
+
+            return sections
+
+        except Exception as e:
+            print(f"Section API Error: {e}")
             return []
 
     def _parse_term(self, term: str) -> str:

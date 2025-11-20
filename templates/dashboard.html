@@ -117,6 +117,76 @@
             font-size: 22px;
             font-weight: 700;
         }
+        .upload-section {
+            margin-bottom: 30px;
+            padding: 25px;
+            background: linear-gradient(135deg, #fff5f5 0%, #ffe0e0 100%);
+            border-radius: 12px;
+            border: 2px dashed #c81e1e;
+        }
+        .upload-section h4 {
+            color: #c81e1e;
+            margin-bottom: 12px;
+            font-size: 16px;
+            font-weight: 700;
+        }
+        .upload-section p {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+        .file-upload {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        .file-input-wrapper {
+            flex: 1;
+        }
+        input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #c81e1e;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+        }
+        .upload-btn {
+            background: linear-gradient(135deg, #c81e1e 0%, #8b0000 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(200, 30, 30, 0.4);
+        }
+        .upload-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .upload-status {
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 8px;
+            display: none;
+        }
+        .upload-status.success {
+            display: block;
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .upload-status.error {
+            display: block;
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
         .form-row {
             display: flex;
             gap: 20px;
@@ -305,6 +375,89 @@
             padding: 4px 12px;
             border-radius: 12px;
         }
+        .course-item-expanded {
+            cursor: pointer;
+        }
+        .course-item-expanded .course-code::after {
+            content: ' ▼';
+            font-size: 10px;
+            margin-left: 5px;
+        }
+        .course-item-expanded.expanded .course-code::after {
+            content: ' ▲';
+        }
+        .sections-container {
+            display: none;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 2px dashed #e0e0e0;
+        }
+        .sections-container.show {
+            display: block;
+        }
+        .section-loading {
+            text-align: center;
+            padding: 15px;
+            color: #666;
+            font-style: italic;
+        }
+        .section-item {
+            background: white;
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            transition: all 0.2s ease;
+        }
+        .section-item:hover {
+            border-color: #c81e1e;
+            box-shadow: 0 2px 8px rgba(200, 30, 30, 0.1);
+        }
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .section-number {
+            font-weight: 700;
+            color: #c81e1e;
+            font-size: 14px;
+        }
+        .section-seats {
+            font-size: 12px;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+        .section-seats.available {
+            background: #d4edda;
+            color: #155724;
+        }
+        .section-seats.limited {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .section-seats.full {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .section-instructor {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 6px;
+        }
+        .section-time {
+            font-size: 13px;
+            color: #555;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .section-days {
+            font-weight: 600;
+            color: #c81e1e;
+        }
         @media (max-width: 768px) {
             .form-row {
                 flex-direction: column;
@@ -333,11 +486,38 @@
         <div class="welcome-card">
             <h2>Welcome back, {{ user.name }}!</h2>
             <p>You're a {{ user.year }} studying {{ user.major }}. Let's find the perfect schedule for your next semester.</p>
-            <p style="margin-top: 10px;"><strong>Completed Courses:</strong> {{ user.completed_courses|join(', ') }}</p>
+            <p style="margin-top: 10px;">
+                <strong>Completed Courses:</strong>
+                {% if user.completed_only %}
+                    {{ user.completed_only|join(', ') }}
+                {% else %}
+                    {{ user.completed_courses|join(', ') }}
+                {% endif %}
+            </p>
+            {% if user.in_progress_courses %}
+            <p style="margin-top: 10px;">
+                <strong>In-Progress (Current Semester):</strong> {{ user.in_progress_courses|join(', ') }}
+            </p>
+            {% endif %}
         </div>
 
         <div class="schedule-form">
             <h3>Generate Your Schedule</h3>
+
+            <div class="upload-section">
+                <h4>📄 Upload Your DARS Report (Optional)</h4>
+                <p>Upload your DARS PDF to automatically extract your completed courses and degree requirements</p>
+                <div class="file-upload">
+                    <div class="file-input-wrapper">
+                        <input type="file" id="darsFile" accept=".pdf" />
+                    </div>
+                    <button type="button" class="upload-btn" id="uploadBtn" onclick="uploadDARS()">
+                        Upload & Parse
+                    </button>
+                </div>
+                <div id="uploadStatus" class="upload-status"></div>
+            </div>
+
             <form id="scheduleForm">
                 <div class="form-row">
                     <div class="form-group">
@@ -370,6 +550,59 @@
     </div>
 
     <script>
+        async function uploadDARS() {
+            const fileInput = document.getElementById('darsFile');
+            const uploadBtn = document.getElementById('uploadBtn');
+            const status = document.getElementById('uploadStatus');
+
+            if (!fileInput.files || fileInput.files.length === 0) {
+                status.className = 'upload-status error';
+                status.textContent = 'Please select a PDF file first';
+                return;
+            }
+
+            const file = fileInput.files[0];
+            if (!file.name.endsWith('.pdf')) {
+                status.className = 'upload-status error';
+                status.textContent = 'Please upload a PDF file';
+                return;
+            }
+
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = 'Parsing...';
+            status.className = 'upload-status';
+            status.style.display = 'none';
+
+            const formData = new FormData();
+            formData.append('dars_pdf', file);
+
+            try {
+                const response = await fetch('/api/parse-dars', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    status.className = 'upload-status success';
+                    status.textContent = `✅ DARS parsed! Found ${data.major} major with ${data.completed_courses.length} completed courses.`;
+
+                    // Reload page to show updated info
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    status.className = 'upload-status error';
+                    status.textContent = '❌ Error: ' + (data.error || 'Failed to parse DARS');
+                }
+            } catch (error) {
+                status.className = 'upload-status error';
+                status.textContent = '❌ Upload failed: ' + error.message;
+            } finally {
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = 'Upload & Parse';
+            }
+        }
+
         document.getElementById('scheduleForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -405,11 +638,16 @@
                         const card = document.createElement('div');
                         card.className = 'schedule-card';
 
-                        const coursesHtml = schedule.course_details.map(course => `
-                            <div class="course-item">
-                                <span class="course-code">${course.code}</span>
-                                <span class="course-name">${course.name}</span>
-                                <span class="course-credits">${course.credits} credits</span>
+                        const coursesHtml = schedule.course_details.map((course, index) => `
+                            <div class="course-item-wrapper">
+                                <div class="course-item course-item-expanded" onclick="toggleSections('${schedule.name.replace(/'/g, '')}', ${index}, '${course.code}', '${formData.semester}')">
+                                    <span class="course-code">${course.code}</span>
+                                    <span class="course-name">${course.name}</span>
+                                    <span class="course-credits">${course.credits} credits</span>
+                                </div>
+                                <div class="sections-container" id="sections-${schedule.name.replace(/'/g, '')}-${index}">
+                                    <div class="section-loading">Click to load sections...</div>
+                                </div>
                             </div>
                         `).join('');
 
@@ -441,6 +679,80 @@
                 btn.disabled = false;
             }
         });
+
+        // Function to toggle and fetch course sections
+        async function toggleSections(scheduleName, courseIndex, courseCode, semester) {
+            const containerId = `sections-${scheduleName}-${courseIndex}`;
+            const container = document.getElementById(containerId);
+            const courseItem = container.previousElementSibling;
+
+            // Toggle expanded state
+            if (container.classList.contains('show')) {
+                container.classList.remove('show');
+                courseItem.classList.remove('expanded');
+                return;
+            }
+
+            // If already loaded, just show
+            if (container.dataset.loaded === 'true') {
+                container.classList.add('show');
+                courseItem.classList.add('expanded');
+                return;
+            }
+
+            // Fetch sections
+            container.innerHTML = '<div class="section-loading">Loading sections...</div>';
+            container.classList.add('show');
+            courseItem.classList.add('expanded');
+
+            try {
+                const response = await fetch(`/api/course-sections/${encodeURIComponent(courseCode)}?semester=${encodeURIComponent(semester)}`);
+                const data = await response.json();
+
+                if (data.sections && data.sections.length > 0) {
+                    const sectionsHtml = data.sections.map(section => {
+                        const seatsAvailable = section.seats_available || 0;
+                        const totalSeats = section.total_seats || 0;
+                        let seatsClass = 'available';
+                        if (seatsAvailable === 0) seatsClass = 'full';
+                        else if (seatsAvailable < 10) seatsClass = 'limited';
+
+                        const meetingTimesHtml = section.meeting_times.map(time => {
+                            const location = time.building && time.location !== 'TBA'
+                                ? `${time.building} ${time.location}`
+                                : time.location;
+                            return `
+                                <div class="section-time">
+                                    <span class="section-days">${time.days}</span>
+                                    <span>${time.start_time} - ${time.end_time}</span>
+                                    <span>${location}</span>
+                                </div>
+                            `;
+                        }).join('');
+
+                        return `
+                            <div class="section-item">
+                                <div class="section-header">
+                                    <span class="section-number">Section ${section.section_number} (${section.type})</span>
+                                    <span class="section-seats ${seatsClass}">${seatsAvailable}/${totalSeats} seats</span>
+                                </div>
+                                <div class="section-instructor">👤 ${section.instructor}</div>
+                                ${meetingTimesHtml}
+                            </div>
+                        `;
+                    }).join('');
+
+                    container.innerHTML = sectionsHtml;
+                } else {
+                    container.innerHTML = '<div class="section-loading">No sections found for this course</div>';
+                }
+
+                container.dataset.loaded = 'true';
+            } catch (error) {
+                container.innerHTML = '<div class="section-loading">Error loading sections</div>';
+                console.error('Error fetching sections:', error);
+            }
+        }
     </script>
 </body>
 </html>
