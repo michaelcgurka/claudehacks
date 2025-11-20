@@ -107,14 +107,20 @@ def parse_dars():
 {
   "major": "primary major name (e.g., 'Computer Science')",
   "minor_or_certificate": "any minor or certificate (or null)",
-  "completed_courses": ["array", "of", "completed", "course", "codes"],
+  "completed_courses": ["array", "of", "ALL", "completed", "course", "codes"],
   "in_progress_courses": ["courses", "currently", "taking"],
   "planned_courses": ["courses", "planned", "for", "future"],
   "total_credits_earned": number,
   "gpa": number (or null if not shown)
 }
 
-Extract course codes exactly as shown (e.g., "COMP SCI 300", "MATH 340").
+CRITICAL INSTRUCTIONS:
+1. For "completed_courses": Include EVERY course that shows as completed/passed with a grade. Look through the ENTIRE document.
+2. This includes all courses with grades like A, AB, B, BC, C, etc. - ANY course with a passing grade.
+3. Do NOT skip any courses - if it has a grade and credits earned, it goes in "completed_courses".
+4. Extract course codes exactly as shown (e.g., "COMP SCI 300", "MATH 340", "COMP SCI 354", "COMP SCI 400").
+5. Be thorough - students often have 20-40+ completed courses. Don't stop after finding just a few.
+
 Return ONLY the JSON object, no other text."""
                     }
                 ]
@@ -123,7 +129,18 @@ Return ONLY the JSON object, no other text."""
 
         # Parse Claude's response
         response_text = message.content[0].text
+        print(f"\n=== DARS PARSING DEBUG ===")
+        print(f"Claude's raw response: {response_text}")
+        print(f"=== END DARS PARSING DEBUG ===\n")
+
         dars_data = json.loads(response_text)
+
+        print(f"\n=== PARSED DARS DATA ===")
+        print(f"Major: {dars_data.get('major')}")
+        print(f"Completed courses: {dars_data.get('completed_courses', [])}")
+        print(f"In-progress courses: {dars_data.get('in_progress_courses', [])}")
+        print(f"Total credits: {dars_data.get('total_credits_earned', 0)}")
+        print(f"=== END PARSED DATA ===\n")
 
         # Update user session with parsed data
         if 'user' not in session:
@@ -173,6 +190,12 @@ Return ONLY the JSON object, no other text."""
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+@app.route('/api/session-debug')
+def session_debug():
+    """Debug endpoint to see what's in the session."""
+    return jsonify(session.get('user', {}))
+
+
 @app.route('/api/generate-schedules', methods=['POST'])
 def generate_schedules():
     if 'user' not in session:
@@ -189,6 +212,11 @@ def generate_schedules():
     user = session['user']
     major = user.get('major', 'Computer Science')
     completed_courses = user.get('completed_courses', [])
+
+    print(f"\n=== SESSION DATA DEBUG ===")
+    print(f"User session: {json.dumps(user, indent=2)}")
+    print(f"Completed courses being used: {completed_courses}")
+    print(f"=== END SESSION DEBUG ===\n")
 
     # Generate schedule recommendations using Claude
     schedules = generate_schedule_with_claude(
@@ -285,6 +313,10 @@ Return ONLY the JSON array, no other text."""
         )
 
         response_text = message.content[0].text
+        print(f"\n=== CLAUDE RESPONSE DEBUG ===")
+        print(f"Response text: {response_text}")
+        print(f"Response length: {len(response_text)}")
+        print(f"=== END CLAUDE RESPONSE ===\n")
 
         # Parse JSON response
         schedules = json.loads(response_text)
