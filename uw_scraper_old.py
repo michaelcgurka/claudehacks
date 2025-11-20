@@ -92,28 +92,53 @@ class UWMadisonScraper:
             print(f"Authentication error: {e}")
             return False
 
-    def get_available_courses(self, term: str = "Spring 2026") -> List[Dict]:
+    def get_available_courses(self, term: str = "Spring 2026", subject: str = "", keywords: str = "") -> List[Dict]:
         """
-        Scrape available courses for a given term.
+        Fetch available courses via UW-Madison API.
 
         Args:
             term: Semester term (e.g., "Spring 2026", "Fall 2025")
+            subject: Subject filter (e.g., "COMP SCI", "MATH")
+            keywords: Keyword search
 
         Returns:
             List of course dictionaries
         """
-        if not self.authenticated:
-            raise Exception("Must authenticate first")
-
         courses = []
 
         try:
-            # TODO: Navigate to Course Search & Enroll
-            # Need actual URL - waiting for screenshot
-            search_url = "https://PUBLIC.enroll.wisc.edu/search"  # Placeholder
+            # Convert term to UW term code
+            term_code = self._parse_term(term)
 
-            # TODO: Implement actual search logic once we see the page structure
-            # This is a placeholder implementation
+            # UW-Madison uses a public course search API
+            api_url = "https://public.enroll.wisc.edu/api/search/v1/courses"
+
+            params = {
+                "term": term_code,
+                "query": keywords if keywords else subject,
+                "page": 0,
+                "pageSize": 100
+            }
+
+            response = self.session.get(api_url, params=params)
+            response.raise_for_status()
+
+            data = response.json()
+
+            # Parse API response
+            for hit in data.get("hits", []):
+                course = {
+                    "code": hit.get("courseDesignationRaw", ""),
+                    "name": hit.get("title", ""),
+                    "credits": hit.get("creditRange", ""),
+                    "description": hit.get("description", ""),
+                    "prereqs": hit.get("enrollmentPrerequisites", ""),
+                    "subject": hit.get("subject", {}).get("shortDescription", ""),
+                    "catalog_number": hit.get("catalogNumber", ""),
+                    "min_credits": hit.get("minimumCredits", 3),
+                    "max_credits": hit.get("maximumCredits", 3)
+                }
+                courses.append(course)
 
             return courses
 
@@ -183,29 +208,34 @@ class UWMadisonScraper:
         Returns:
             List of matching courses
         """
-        # TODO: Implement course search
-        return []
+        return self.get_available_courses(subject=subject, keywords=keywords)
 
+    def _parse_term(self, term_string: str) -> str:
+        """
+        Convert term string to UW-Madison term code.
+        Example: "Spring 2026" -> "1262"
+        """
+        season_codes = {
+            "Spring": "2",
+            "Summer": "3",
+            "Fall": "4"
+        }
 
-# Helper function to convert term names
-def parse_term(term_string: str) -> str:
-    """
-    Convert term string to UW-Madison term code.
-    Example: "Spring 2026" -> "1262"
-    """
-    season_codes = {
-        "Spring": "2",
-        "Summer": "3",
-        "Fall": "4"
-    }
+        # Extract season and year
+        parts = term_string.split()
+        if len(parts) == 2:
+            season = parts[0]
+            year = parts[1][-2:]  # Last 2 digits
 
-    # Extract season and year
-    parts = term_string.split()
-    if len(parts) == 2:
-        season = parts[0]
-        year = parts[1][-2:]  # Last 2 digits
+            if season in season_codes:
+                return "1" + year + season_codes[season]
 
-        if season in season_codes:
-            return "1" + year + season_codes[season]
+        return "1262"  # Default to Spring 2026
 
-    return ""
+    def get_cs_courses(self, term: str = "Spring 2026") -> List[Dict]:
+        """Quick helper to get all CS courses."""
+        return self.get_available_courses(term=term, subject="COMP SCI")
+
+    def get_math_courses(self, term: str = "Spring 2026") -> List[Dict]:
+        """Quick helper to get all MATH courses."""
+        return self.get_available_courses(term=term, subject="MATH")

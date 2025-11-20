@@ -4,6 +4,7 @@ from flask import Flask, render_template, request, jsonify, session, redirect, u
 from dotenv import load_dotenv
 import anthropic
 import json
+from uw_api import UWMadisonAPI
 
 load_dotenv()
 
@@ -11,6 +12,7 @@ app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
 
 client = anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
+uw_api = UWMadisonAPI()  # Real UW-Madison course API
 
 # Mock course data - replace with actual university API integration
 COURSES = {
@@ -49,8 +51,16 @@ DEGREE_REQUIREMENTS = {
 
 @app.route('/')
 def index():
+    # Skip login - auto-create demo user
     if 'user' not in session:
-        return redirect(url_for('login'))
+        session['user'] = {
+            "email": "demo@wisc.edu",
+            "name": "Demo Student",
+            "major": "Computer Science",
+            "year": "Junior",
+            "completed_courses": ["COMP SCI 200", "COMP SCI 300", "MATH 221", "MATH 222"],
+            "gpa": 3.5
+        }
     return render_template('dashboard.html', user=session['user'])
 
 
@@ -134,18 +144,29 @@ def get_user_profile(email):
 
 def generate_schedule_with_claude(major, completed_courses, target_credits, semester):
     """
-    Use Claude to generate intelligent schedule recommendations.
+    Use Claude to generate intelligent schedule recommendations using REAL UW-Madison data.
     """
     degree_reqs = DEGREE_REQUIREMENTS.get(major, {})
 
-    # Build available courses (courses where prereqs are met)
+    # Fetch REAL courses from UW-Madison API
+    print(f"Fetching real UW-Madison courses for {semester}...")
+    cs_courses = uw_api.get_courses(term=semester, subject="COMP SCI")
+    math_courses = uw_api.get_courses(term=semester, subject="MATH")
+
+    # Combine and filter courses
+    all_courses = cs_courses + math_courses
     available_courses = []
-    for dept, courses in COURSES.items():
-        for course in courses:
-            if course['code'] not in completed_courses:
-                prereqs_met = all(prereq in completed_courses for prereq in course['prereqs'])
-                if prereqs_met:
-                    available_courses.append(course)
+
+    for course in all_courses:
+        # Simple filtering - only include if not already completed
+        # You could add more sophisticated prerequisite checking here
+        if course['code'] not in completed_courses:
+            available_courses.append({
+                "code": course['code'],
+                "name": course['name'],
+                "credits": course.get('min_credits', 3),
+                "prereqs": course.get('prereqs', 'None')[:100]  # Truncate long prereq strings
+            })
 
     # Create prompt for Claude
     prompt = f"""You are a university course scheduling advisor. Generate 3 different recommended schedules for a {major} student.
